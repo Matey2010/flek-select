@@ -3,5 +3,5 @@ class SelectOption {
   final dynamic value;
   final Map<String, dynamic>? params;
 
-  SelectOption({required this.text, required this.value, this.params});
+  const SelectOption({required this.text, required this.value, this.params});
 }

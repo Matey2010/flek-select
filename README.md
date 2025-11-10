@@ -1,14 +1,15 @@
-# FlekSelect
+# 🎯 FlekSelect
 
-A customizable Flutter select widget with flexible overlay options and tree-shakable exports. Extracted from dredge_ui as part of a modular package restructuring.
+A customizable Flutter select widget library with flexible overlay options and tree-shakable exports. Extracted from dredge_ui as part of a modular package restructuring.
 
-## Features
+## ✨ Features
 
-- **Flexible Overlay System**: Custom callback for showing select options dialog
-- **Tree-Shakable**: Import only what you need
-- **Highly Customizable**: Custom builders for options and values
-- **Responsive Touch**: Uses Tappable package for better touch feedback
-- **Rich Options**: Labels, hints, errors, disabled states, and more
+- **📋 Select Widget**: Dropdown-style select with flexible overlay system
+- **🎛️ ToggleButtonGroup**: Row-based toggle buttons for inline selection
+- **🌳 Tree-Shakable**: Import only what you need
+- **🎨 Highly Customizable**: Custom builders for options and values
+- **👆 Responsive Touch**: Uses Tappable package for better touch feedback
+- **⚙️ Rich Options**: Labels, hints, errors, disabled states, and more
 
 ## Installation
 
@@ -20,9 +21,11 @@ dependencies:
     path: ../flek_select
 ```
 
-## Usage
+## 📖 Usage
 
-### Basic Example
+### 📋 Select Widget
+
+#### Basic Example
 
 ```dart
 import 'package:flutter/material.dart';
@@ -120,7 +123,7 @@ Select(
 )
 ```
 
-### With "Not Selected" Option
+#### With "Not Selected" Option
 
 ```dart
 Select(
@@ -132,7 +135,141 @@ Select(
 )
 ```
 
-## API Reference
+### 🎛️ ToggleButtonGroup Widget
+
+A row-based toggle button group that displays options as a horizontal (or multiline) row of tappable buttons.
+
+#### Basic Example
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:flek_select/toggle_button_group.dart';
+import 'package:flek_select/select_option.dart';
+
+class MyWidget extends StatefulWidget {
+  @override
+  _MyWidgetState createState() => _MyWidgetState();
+}
+
+class _MyWidgetState extends State<MyWidget> {
+  String selectedValue = 'option1';
+
+  @override
+  Widget build(BuildContext context) {
+    return ToggleButtonGroup(
+      options: [
+        SelectOption(text: 'Option 1', value: 'option1'),
+        SelectOption(text: 'Option 2', value: 'option2'),
+        SelectOption(text: 'Option 3', value: 'option3'),
+      ],
+      value: selectedValue,
+      onChange: (value) {
+        setState(() {
+          selectedValue = value;
+        });
+      },
+    );
+  }
+}
+```
+
+#### Custom Button Builder
+
+```dart
+ToggleButtonGroup(
+  options: myOptions,
+  value: selectedValue,
+  onChange: (value) => setState(() => selectedValue = value),
+  buttonBuilder: (context, option, isActive) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: BoxDecoration(
+        color: isActive ? Colors.purple : Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isActive ? Colors.purple : Colors.grey.shade300,
+          width: 2,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.check_circle,
+            size: 16,
+            color: isActive ? Colors.white : Colors.grey,
+          ),
+          SizedBox(width: 8),
+          Text(
+            option.text,
+            style: TextStyle(
+              color: isActive ? Colors.white : Colors.black87,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
+  },
+)
+```
+
+#### With Custom Spacing
+
+```dart
+ToggleButtonGroup(
+  options: myOptions,
+  value: selectedValue,
+  onChange: (value) => setState(() => selectedValue = value),
+  spacing: 12.0,  // Horizontal spacing between buttons
+  runSpacing: 12.0,  // Vertical spacing when wrapping to new line
+  wrapAlignment: WrapAlignment.center,
+)
+```
+
+#### Scrollable Mode
+
+Use scrollable mode to create a horizontally scrollable row of buttons when you have many options or limited horizontal space.
+
+```dart
+ToggleButtonGroup(
+  options: myOptions,
+  value: selectedValue,
+  onChange: (value) => setState(() => selectedValue = value),
+  scrollable: true,
+  scrollAlignment: MainAxisAlignment.start,
+  scrollCrossAlignment: CrossAxisAlignment.center,
+)
+```
+
+#### With Scroll Controller and Custom Physics
+
+You can provide a scroll controller to programmatically scroll to specific items, along with custom scroll physics and padding:
+
+```dart
+final scrollController = ScrollController();
+
+// ... later in your code
+ToggleButtonGroup(
+  options: myOptions,
+  value: selectedValue,
+  onChange: (value) => setState(() => selectedValue = value),
+  scrollable: true,
+  scrollController: scrollController,
+  scrollPadding: EdgeInsets.symmetric(horizontal: 16),
+  scrollPhysics: BouncingScrollPhysics(),
+  clipBehavior: Clip.none,
+)
+
+// Scroll to a specific position
+scrollController.animateTo(
+  200,
+  duration: Duration(milliseconds: 300),
+  curve: Curves.easeInOut,
+);
+```
+
+## 📚 API Reference
 
 ### Select Widget
 
@@ -157,6 +294,27 @@ Select(
 | `valueBuilder` | `Widget Function(BuildContext, SelectOption?, bool)?` | Default text builder | Custom builder for selected value |
 | `showOverlay` | `Future<void> Function(BuildContext, Widget)?` | `null` | Custom overlay handler. If null, uses default `showDialog` |
 
+### ToggleButtonGroup Widget
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `options` | `List<SelectOption>` | **required** | List of selectable options |
+| `value` | `dynamic` | **required** | Currently selected value |
+| `onChange` | `Function(dynamic)` | **required** | Callback when value changes |
+| `buttonBuilder` | `Widget Function(BuildContext, SelectOption, bool)?` | Default rounded button | Custom builder for each button. Receives context, option, and isActive |
+| `spacing` | `double` | `8.0` | Horizontal spacing between buttons |
+| `runSpacing` | `double` | `8.0` | Vertical spacing when buttons wrap to new line (Wrap mode only) |
+| `wrapAlignment` | `WrapAlignment` | `WrapAlignment.start` | Alignment of buttons in Wrap mode (when scrollable is false) |
+| `wrapCrossAlignment` | `WrapCrossAlignment` | `WrapCrossAlignment.center` | Cross-axis alignment of buttons in Wrap mode |
+| `isDisabled` | `bool` | `false` | Disables all buttons |
+| `scrollable` | `bool` | `false` | Enable horizontal scrolling mode |
+| `scrollController` | `ScrollController?` | `null` | Optional controller for programmatic scrolling |
+| `scrollAlignment` | `MainAxisAlignment` | `MainAxisAlignment.start` | Horizontal alignment of buttons in scrollable mode |
+| `scrollCrossAlignment` | `CrossAxisAlignment` | `CrossAxisAlignment.center` | Vertical alignment of buttons in scrollable mode |
+| `scrollPadding` | `EdgeInsetsGeometry?` | `null` | Padding around the scrollable content in scrollable mode |
+| `scrollPhysics` | `ScrollPhysics?` | `null` | Custom scroll physics for scrollable mode |
+| `clipBehavior` | `Clip` | `Clip.hardEdge` | Clip behavior for the scroll view in scrollable mode |
+
 ### SelectOption Model
 
 | Property | Type | Description |
@@ -165,7 +323,7 @@ Select(
 | `value` | `dynamic` | Value associated with the option |
 | `params` | `Map<String, dynamic>?` | Optional additional metadata |
 
-## Tree-Shaking
+## 🌳 Tree-Shaking
 
 Import only what you need:
 
@@ -173,12 +331,15 @@ Import only what you need:
 // Import only Select widget
 import 'package:flek_select/select.dart';
 
+// Import only ToggleButtonGroup widget
+import 'package:flek_select/toggle_button_group.dart';
+
 // Import only SelectOption model
 import 'package:flek_select/select_option.dart';
 ```
 
 This ensures unused code is not included in your app bundle.
 
-## License
+## 📄 License
 
 MIT License

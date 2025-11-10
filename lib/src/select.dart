@@ -43,14 +43,15 @@ class Select extends StatefulWidget {
   final BoxDecoration? inputDecoration;
   final Color? backgroundColor;
   final Widget Function(BuildContext context, SelectOption option)
-      optionBuilder;
+  optionBuilder;
   final Widget Function(
     BuildContext context,
     SelectOption? option,
     bool isDisabled,
-  )? valueBuilder;
+  )?
+  valueBuilder;
   final Future<void> Function(BuildContext context, Widget dialogContent)?
-      showOverlay;
+  showOverlay;
 
   const Select({
     required this.options,
@@ -76,14 +77,14 @@ class Select extends StatefulWidget {
       SelectOption? option,
       bool isDisabled,
     )?
-        valueBuilder,
+    valueBuilder,
     super.key,
-  })  : optionBuilder = optionBuilder ?? _defaultOptionBuilder,
-        valueBuilder = valueBuilder ?? _defaultValueBuilder,
-        assert(
-          !showNotSelectedOption || notSelectedOptionText != "",
-          "notSelectedOptionText must be set if showNotSelectedOption is true",
-        );
+  }) : optionBuilder = optionBuilder ?? _defaultOptionBuilder,
+       valueBuilder = valueBuilder ?? _defaultValueBuilder,
+       assert(
+         !showNotSelectedOption || notSelectedOptionText != "",
+         "notSelectedOptionText must be set if showNotSelectedOption is true",
+       );
 
   @override
   State<Select> createState() => _SelectState();
@@ -119,10 +120,7 @@ class _SelectState extends State<Select> {
     if (widget.showOverlay != null) {
       await widget.showOverlay!(context, dialogContent);
     } else {
-      await showDialog(
-        context: context,
-        builder: (context) => dialogContent,
-      );
+      await showDialog(context: context, builder: (context) => dialogContent);
     }
 
     if (mounted) {
@@ -148,7 +146,7 @@ class _SelectState extends State<Select> {
   Widget build(BuildContext context) {
     final BorderRadius borderRadius =
         (widget.inputDecoration?.borderRadius as BorderRadius?) ??
-            BorderRadius.all(Radius.circular(8));
+        BorderRadius.all(Radius.circular(8));
 
     final String? formattedLabel = (() {
       if (widget.inputLabel == null) {
@@ -209,8 +207,8 @@ class _SelectState extends State<Select> {
                     widget.isDisabled
                         ? Icons.lock
                         : isDialogVisible
-                            ? Icons.arrow_drop_up
-                            : Icons.arrow_drop_down,
+                        ? Icons.arrow_drop_up
+                        : Icons.arrow_drop_down,
                     size: 24,
                     color: Colors.grey,
                   ),

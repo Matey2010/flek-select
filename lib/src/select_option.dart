@@ -1,7 +1,7 @@
-class SelectOption {
+class SelectOption<T, P> {
   final String text;
-  final dynamic value;
-  final Map<String, dynamic>? params;
+  final T value;
+  final P? params;
 
   const SelectOption({required this.text, required this.value, this.params});
 }

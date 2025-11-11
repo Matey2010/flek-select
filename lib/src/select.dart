@@ -5,13 +5,13 @@ import 'package:tappable/tappable.dart';
 const double _selectHeight = 48.0;
 const EdgeInsets _defaultInputPadding = EdgeInsets.only(left: 12, right: 12);
 
-Widget _defaultOptionBuilder(BuildContext context, SelectOption option) {
+Widget _defaultOptionBuilder<T, P>(BuildContext context, SelectOption<T, P> option) {
   return Text(option.text);
 }
 
-Widget _defaultValueBuilder(
+Widget _defaultValueBuilder<T, P>(
   BuildContext context,
-  SelectOption? option,
+  SelectOption<T, P>? option,
   bool isDisabled,
 ) {
   final textStyle = TextStyle(
@@ -25,15 +25,15 @@ Widget _defaultValueBuilder(
   return Text(option?.text ?? "", style: textStyle);
 }
 
-class Select extends StatefulWidget {
+class Select<T, P> extends StatefulWidget {
   final String? inputLabel;
   final String? inputHint;
   final String? dialogLabel;
   final String? hint;
-  final dynamic value;
+  final T? value;
   final bool? isRequired;
-  final void Function(dynamic value) onChange;
-  final List<SelectOption> options;
+  final void Function(T? value) onChange;
+  final List<SelectOption<T, P>> options;
   final bool withNotSelectedOption;
   final bool showNotSelectedOption;
   final String notSelectedOptionText;
@@ -42,14 +42,17 @@ class Select extends StatefulWidget {
   final EdgeInsetsGeometry? inputPadding;
   final BoxDecoration? inputDecoration;
   final Color? backgroundColor;
-  final Widget Function(BuildContext context, SelectOption option)
+  final Widget Function(BuildContext context, SelectOption<T, P> option)
   optionBuilder;
   final Widget Function(
     BuildContext context,
-    SelectOption? option,
+    SelectOption<T, P>? option,
     bool isDisabled,
   )?
   valueBuilder;
+  @Deprecated(
+    'showOverlay is deprecated and will be removed. Overlay behavior is now built-in.',
+  )
   final Future<void> Function(BuildContext context, Widget dialogContent)?
   showOverlay;
 
@@ -71,58 +74,39 @@ class Select extends StatefulWidget {
     this.inputDecoration,
     this.backgroundColor,
     this.showOverlay,
-    Widget Function(BuildContext context, SelectOption option)? optionBuilder,
+    Widget Function(BuildContext context, SelectOption<T, P> option)? optionBuilder,
     Widget Function(
       BuildContext context,
-      SelectOption? option,
+      SelectOption<T, P>? option,
       bool isDisabled,
     )?
     valueBuilder,
     super.key,
-  }) : optionBuilder = optionBuilder ?? _defaultOptionBuilder,
-       valueBuilder = valueBuilder ?? _defaultValueBuilder,
+  }) : optionBuilder = optionBuilder ?? _defaultOptionBuilder<T, P>,
+       valueBuilder = valueBuilder ?? _defaultValueBuilder<T, P>,
        assert(
          !showNotSelectedOption || notSelectedOptionText != "",
          "notSelectedOptionText must be set if showNotSelectedOption is true",
        );
 
   @override
-  State<Select> createState() => _SelectState();
+  State<Select<T, P>> createState() => _SelectState<T, P>();
 }
 
-class _SelectState extends State<Select> {
+class _SelectState<T, P> extends State<Select<T, P>> {
   bool isDialogVisible = false;
+  OverlayEntry? _overlayEntry;
+  final GlobalKey _selectKey = GlobalKey();
 
-  Future<void> showSelectDialog(BuildContext context) async {
-    List<SelectOption> optionsToShow = [
-      if (widget.showNotSelectedOption)
-        SelectOption(text: widget.notSelectedOptionText, value: null),
-      ...widget.options,
-    ];
+  @override
+  void dispose() {
+    _closeOverlay();
+    super.dispose();
+  }
 
-    final dialogContent = SimpleDialog(
-      title: widget.dialogLabel != null ? Text(widget.dialogLabel!) : null,
-      children: optionsToShow.map((e) {
-        return SimpleDialogOption(
-          onPressed: () {
-            widget.onChange(e.value);
-            Navigator.of(context).pop();
-          },
-          child: widget.optionBuilder(context, e),
-        );
-      }).toList(),
-    );
-
-    setState(() {
-      isDialogVisible = true;
-    });
-
-    if (widget.showOverlay != null) {
-      await widget.showOverlay!(context, dialogContent);
-    } else {
-      await showDialog(context: context, builder: (context) => dialogContent);
-    }
-
+  void _closeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
     if (mounted) {
       setState(() {
         isDialogVisible = false;
@@ -130,7 +114,95 @@ class _SelectState extends State<Select> {
     }
   }
 
-  SelectOption? get selectedOption {
+  void _showSelectOverlay() {
+    if (_overlayEntry != null) return; // Already open
+
+    setState(() {
+      isDialogVisible = true;
+    });
+
+    _overlayEntry = OverlayEntry(
+      builder: (context) => _buildOverlayContent(context),
+    );
+
+    Overlay.of(context, rootOverlay: true).insert(_overlayEntry!);
+  }
+
+  Widget _buildOverlayContent(BuildContext context) {
+    // Get screen size
+    final screenSize = MediaQuery.of(context).size;
+
+    // Build options list
+    List<SelectOption<T, P>> optionsToShow = [
+      if (widget.showNotSelectedOption)
+        SelectOption<T, P>(text: widget.notSelectedOptionText, value: null as T),
+      ...widget.options,
+    ];
+
+    return SizedBox.expand(
+      child: Stack(
+        children: [
+          // Backdrop - tap to close
+          Positioned.fill(
+            child: Tappable(
+              onTap: _closeOverlay,
+              child: Container(color: Colors.black87),
+            ),
+          ),
+          // Centered options container
+          Center(
+            child: Material(
+              elevation: 8,
+              borderRadius: BorderRadius.circular(8),
+              color: widget.backgroundColor ?? Colors.white,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: screenSize.height * 0.8,
+                  maxWidth: screenSize.width * 0.9,
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (widget.dialogLabel != null)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                          child: Text(
+                            widget.dialogLabel!,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ...optionsToShow.map((option) {
+                        return InkWell(
+                          onTap: () {
+                            widget.onChange(option.value);
+                            _closeOverlay();
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            child: widget.optionBuilder(context, option),
+                          ),
+                        );
+                      }).toList(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  SelectOption<T, P>? get selectedOption {
     final selectedValueIndex = widget.options.indexWhere(
       (element) => element.value == widget.value,
     );
@@ -178,6 +250,7 @@ class _SelectState extends State<Select> {
           ),
         ],
         Container(
+          key: _selectKey, // Add key for positioning
           height: widget.inputLabel != null ? _selectHeight : 32,
           decoration: BoxDecoration(
             borderRadius: borderRadius,
@@ -188,7 +261,7 @@ class _SelectState extends State<Select> {
             onTap: widget.isDisabled
                 ? null
                 : () {
-                    showSelectDialog(context);
+                    _showSelectOverlay(); // Use new overlay method
                   },
             child: Container(
               padding: widget.inputPadding ?? _defaultInputPadding,

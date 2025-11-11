@@ -2,9 +2,9 @@ import 'package:flek_select/src/select_option.dart';
 import 'package:flutter/material.dart';
 import 'package:tappable/tappable.dart';
 
-Widget _defaultButtonBuilder(
+Widget _defaultButtonBuilder<T, P>(
   BuildContext context,
-  SelectOption option,
+  SelectOption<T, P> option,
   bool isActive,
 ) {
   return Container(
@@ -24,11 +24,11 @@ Widget _defaultButtonBuilder(
   );
 }
 
-class ToggleButtonGroup extends StatelessWidget {
-  final List<SelectOption> options;
-  final dynamic value;
-  final void Function(dynamic value) onChange;
-  final Widget Function(BuildContext context, SelectOption option, bool isActive)?
+class ToggleButtonGroup<T, P> extends StatelessWidget {
+  final List<SelectOption<T, P>> options;
+  final T? value;
+  final void Function(T? value) onChange;
+  final Widget Function(BuildContext context, SelectOption<T, P> option, bool isActive)?
       buttonBuilder;
   final double spacing;
   final double runSpacing;
@@ -65,7 +65,7 @@ class ToggleButtonGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveButtonBuilder = buttonBuilder ?? _defaultButtonBuilder;
+    final effectiveButtonBuilder = buttonBuilder ?? _defaultButtonBuilder<T, P>;
 
     final buttons = options.map((option) {
       final isActive = option.value == value;

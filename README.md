@@ -10,6 +10,42 @@ A customizable Flutter select widget library with flexible overlay options and t
 - **🎨 Highly Customizable**: Custom builders for options and values
 - **👆 Responsive Touch**: Uses Tappable package for better touch feedback
 - **⚙️ Rich Options**: Labels, hints, errors, disabled states, and more
+- **🔒 Type-Safe**: Optional generic types for compile-time type checking
+
+## 🔒 Type Safety (v0.4.0+)
+
+FlekSelect supports optional generic type parameters for compile-time type safety:
+
+```dart
+// Type-safe with generics (optional)
+SelectOption<String, int>(
+  text: 'Messages',
+  value: 'messages',
+  params: 5, // Notification count - strongly typed as int
+)
+
+Select<int, dynamic>(
+  options: [
+    SelectOption<int, dynamic>(text: 'One', value: 1),
+    SelectOption<int, dynamic>(text: 'Two', value: 2),
+  ],
+  value: selectedValue,
+  onChange: (int? value) {
+    // No casting needed - value is already int!
+    setState(() => selectedValue = value);
+  },
+)
+
+// Or use without types (backwards compatible)
+SelectOption(text: 'Option', value: 'value')
+```
+
+**Benefits:**
+- 🎯 Compile-time type checking
+- 🚫 No runtime casting needed
+- 💡 Better IDE autocomplete
+- 📝 Self-documenting code
+- ✅ Gradual migration - existing code works unchanged
 
 ## Installation
 
@@ -76,9 +112,12 @@ Select(
 )
 ```
 
-### Custom Overlay (Using a different overlay package)
+### Custom Overlay (Deprecated)
+
+> ⚠️ **Note**: The `showOverlay` parameter is deprecated as of version 0.3.0. The Select widget now uses an optimized OverlayEntry-based system that works reliably in all scenarios.
 
 ```dart
+// This approach is deprecated and will be removed in future versions
 Select(
   options: myOptions,
   value: selectedValue,
@@ -88,8 +127,7 @@ Select(
     });
   },
   showOverlay: (context, dialogContent) async {
-    // Use your own overlay package here
-    // For example, using a custom positioned overlay:
+    // No longer needed - overlay behavior is built-in
     await showCustomOverlay(context, dialogContent);
   },
 )
@@ -269,15 +307,78 @@ scrollController.animateTo(
 );
 ```
 
+## 🔧 Implementation Details
+
+### Overlay System (v0.3.0+)
+
+The Select widget uses Flutter's native `OverlayEntry` API instead of `showDialog` for superior reliability and performance:
+
+**Key Features:**
+
+- **Root Overlay Insertion**: Uses `Overlay.of(context, rootOverlay: true)` to insert at the app's root level
+- **Covers All UI**: Appears above navigation elements (headers, bottom navigation, etc.)
+- **Synchronous Removal**: Uses `OverlayEntry.remove()` instead of `Navigator.pop()` to avoid timing conflicts
+- **Complex Hierarchy Support**: Works reliably in SliverPersistentHeader and other advanced layouts
+- **Centered Modal**: Displays as a centered container with 80% max height and 90% max width
+- **Dark Backdrop**: Full-screen semi-transparent backdrop (87% opacity) with tap-to-close
+
+**Technical Architecture:**
+
+```dart
+// Simplified internal implementation
+void _showSelectOverlay() {
+  _overlayEntry = OverlayEntry(
+    builder: (context) => SizedBox.expand(
+      child: Stack(
+        children: [
+          // Full-screen backdrop
+          Positioned.fill(
+            child: Tappable(
+              onTap: _closeOverlay,
+              child: Container(color: Colors.black87),
+            ),
+          ),
+          // Centered options modal
+          Center(
+            child: Material(
+              child: /* options list */,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  // Insert at root level
+  Overlay.of(context, rootOverlay: true).insert(_overlayEntry!);
+}
+```
+
+**Lifecycle Management:**
+
+- Overlay is removed in `dispose()` to prevent memory leaks
+- Prevents multiple overlays from opening simultaneously
+- Safe state updates with mounted checks
+
+**Why Not `showDialog`?**
+
+- `showDialog` uses Navigator which can conflict with complex widget hierarchies
+- Navigator-based dialogs may not close properly when parent widgets rebuild
+- OverlayEntry provides direct, synchronous control over overlay lifecycle
+
 ## 📚 API Reference
 
 ### Select Widget
 
+**Generic Parameters:**
+- `T` - Type of the option value (defaults to `dynamic`)
+- `P` - Type of the option params (defaults to `dynamic`)
+
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `options` | `List<SelectOption>` | **required** | List of selectable options |
-| `onChange` | `Function(dynamic)` | **required** | Callback when value changes |
-| `value` | `dynamic` | `null` | Currently selected value |
+| `options` | `List<SelectOption<T, P>>` | **required** | List of selectable options |
+| `onChange` | `Function(T?)` | **required** | Callback when value changes |
+| `value` | `T?` | `null` | Currently selected value |
 | `inputLabel` | `String?` | `null` | Label displayed above the select |
 | `isRequired` | `bool?` | `null` | Shows asterisk (*) next to label |
 | `inputHint` | `String?` | `null` | Hint text displayed inside select |
@@ -290,18 +391,22 @@ scrollController.animateTo(
 | `inputPadding` | `EdgeInsetsGeometry?` | `EdgeInsets.only(left: 12, right: 12)` | Padding inside select |
 | `inputDecoration` | `BoxDecoration?` | `null` | Custom decoration for select |
 | `backgroundColor` | `Color?` | `Colors.white10` | Background color |
-| `optionBuilder` | `Widget Function(BuildContext, SelectOption)?` | Default text builder | Custom builder for options |
-| `valueBuilder` | `Widget Function(BuildContext, SelectOption?, bool)?` | Default text builder | Custom builder for selected value |
-| `showOverlay` | `Future<void> Function(BuildContext, Widget)?` | `null` | Custom overlay handler. If null, uses default `showDialog` |
+| `optionBuilder` | `Widget Function(BuildContext, SelectOption<T, P>)?` | Default text builder | Custom builder for options |
+| `valueBuilder` | `Widget Function(BuildContext, SelectOption<T, P>?, bool)?` | Default text builder | Custom builder for selected value |
+| `showOverlay` | `Future<void> Function(BuildContext, Widget)?` | `null` | **Deprecated in v0.3.0**. Custom overlay handler (no longer needed - overlay system is now built-in) |
 
 ### ToggleButtonGroup Widget
 
+**Generic Parameters:**
+- `T` - Type of the option value (defaults to `dynamic`)
+- `P` - Type of the option params (defaults to `dynamic`)
+
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `options` | `List<SelectOption>` | **required** | List of selectable options |
-| `value` | `dynamic` | **required** | Currently selected value |
-| `onChange` | `Function(dynamic)` | **required** | Callback when value changes |
-| `buttonBuilder` | `Widget Function(BuildContext, SelectOption, bool)?` | Default rounded button | Custom builder for each button. Receives context, option, and isActive |
+| `options` | `List<SelectOption<T, P>>` | **required** | List of selectable options |
+| `value` | `T?` | **required** | Currently selected value |
+| `onChange` | `Function(T?)` | **required** | Callback when value changes |
+| `buttonBuilder` | `Widget Function(BuildContext, SelectOption<T, P>, bool)?` | Default rounded button | Custom builder for each button. Receives context, option, and isActive |
 | `spacing` | `double` | `8.0` | Horizontal spacing between buttons |
 | `runSpacing` | `double` | `8.0` | Vertical spacing when buttons wrap to new line (Wrap mode only) |
 | `wrapAlignment` | `WrapAlignment` | `WrapAlignment.start` | Alignment of buttons in Wrap mode (when scrollable is false) |
@@ -317,11 +422,15 @@ scrollController.animateTo(
 
 ### SelectOption Model
 
+**Generic Parameters:**
+- `T` - Type of the value (defaults to `dynamic`)
+- `P` - Type of the params (defaults to `dynamic`)
+
 | Property | Type | Description |
 |----------|------|-------------|
 | `text` | `String` | Display text for the option |
-| `value` | `dynamic` | Value associated with the option |
-| `params` | `Map<String, dynamic>?` | Optional additional metadata |
+| `value` | `T` | Value associated with the option |
+| `params` | `P?` | Optional additional metadata (can be any type, not just Map) |
 
 ## 🌳 Tree-Shaking
 

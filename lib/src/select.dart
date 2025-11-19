@@ -105,13 +105,15 @@ class _SelectState<T, P> extends State<Select<T, P>> {
   }
 
   void _closeOverlay() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
+    if (_overlayEntry == null) return;
     if (mounted) {
       setState(() {
         isDialogVisible = false;
       });
     }
+
+    _overlayEntry?.remove();
+    _overlayEntry = null;
   }
 
   void _showSelectOverlay() {

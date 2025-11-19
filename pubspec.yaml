@@ -1,6 +1,6 @@
 name: flek_select
 description: "A customizable Flutter select widget library with Select dropdown and ToggleButtonGroup components. Features flexible overlay options and tree-shakable exports."
-version: 0.4.0
+version: 0.4.1
 homepage: https://github.com/Matey2010/flek_select
 
 environment:

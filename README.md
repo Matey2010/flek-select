@@ -7,8 +7,8 @@ A customizable Flutter select widget library with flexible overlay options and t
 - **📋 Select Widget**: Dropdown-style select with flexible overlay system
 - **🎛️ ToggleButtonGroup**: Row-based toggle buttons for inline selection
 - **🌳 Tree-Shakable**: Import only what you need
-- **🎨 Highly Customizable**: Custom builders for options and values
-- **👆 Responsive Touch**: Uses Tappable package for better touch feedback
+- **🎨 Highly Customizable**: Custom builders for input, buttons, and values
+- **👆 Flexible Touch Handling**: Use any touch handler (GestureDetector, InkWell, Tappable, etc.)
 - **⚙️ Rich Options**: Labels, hints, errors, disabled states, and more
 - **🔒 Type-Safe**: Optional generic types for compile-time type checking
 
@@ -161,6 +161,56 @@ Select(
 )
 ```
 
+### Custom Input Builder (v0.5.0+)
+
+Build the entire input field with full control over styling and touch handling:
+
+```dart
+Select(
+  options: myOptions,
+  value: selectedValue,
+  onChange: (value) => setState(() => selectedValue = value),
+  inputBuilder: (context, selectedOption, isDisabled, onOpenSelectPopup) {
+    return GestureDetector(
+      onTap: isDisabled ? null : onOpenSelectPopup,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.blue.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.blue.shade200),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(selectedOption?.text ?? 'Select an option'),
+            Icon(Icons.keyboard_arrow_down),
+          ],
+        ),
+      ),
+    );
+  },
+)
+```
+
+### Custom Backdrop Builder (v0.5.0+)
+
+Customize the backdrop behind the popup:
+
+```dart
+Select(
+  options: myOptions,
+  value: selectedValue,
+  onChange: (value) => setState(() => selectedValue = value),
+  backdropBuilder: (context, onCloseSelectPopup) {
+    return GestureDetector(
+      onTap: onCloseSelectPopup,
+      child: Container(color: Colors.black54),
+    );
+  },
+)
+```
+
 #### With "Not Selected" Option
 
 ```dart
@@ -211,41 +261,46 @@ class _MyWidgetState extends State<MyWidget> {
 }
 ```
 
-#### Custom Button Builder
+#### Custom Button Builder (v0.5.0+)
+
+The `buttonBuilder` now receives an `onSelect` callback that you must handle for the tap action:
 
 ```dart
 ToggleButtonGroup(
   options: myOptions,
   value: selectedValue,
   onChange: (value) => setState(() => selectedValue = value),
-  buttonBuilder: (context, option, isActive) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      decoration: BoxDecoration(
-        color: isActive ? Colors.purple : Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isActive ? Colors.purple : Colors.grey.shade300,
-          width: 2,
+  buttonBuilder: (context, option, isActive, onSelect) {
+    return GestureDetector(
+      onTap: onSelect,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        decoration: BoxDecoration(
+          color: isActive ? Colors.purple : Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isActive ? Colors.purple : Colors.grey.shade300,
+            width: 2,
+          ),
         ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.check_circle,
-            size: 16,
-            color: isActive ? Colors.white : Colors.grey,
-          ),
-          SizedBox(width: 8),
-          Text(
-            option.text,
-            style: TextStyle(
-              color: isActive ? Colors.white : Colors.black87,
-              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.check_circle,
+              size: 16,
+              color: isActive ? Colors.white : Colors.grey,
             ),
-          ),
-        ],
+            SizedBox(width: 8),
+            Text(
+              option.text,
+              style: TextStyle(
+                color: isActive ? Colors.white : Colors.black87,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   },
@@ -331,9 +386,9 @@ void _showSelectOverlay() {
     builder: (context) => SizedBox.expand(
       child: Stack(
         children: [
-          // Full-screen backdrop
+          // Full-screen backdrop (customizable via backdropBuilder)
           Positioned.fill(
-            child: Tappable(
+            child: GestureDetector(
               onTap: _closeOverlay,
               child: Container(color: Colors.black87),
             ),
@@ -393,6 +448,8 @@ void _showSelectOverlay() {
 | `backgroundColor` | `Color?` | `Colors.white10` | Background color |
 | `optionBuilder` | `Widget Function(BuildContext, SelectOption<T, P>)?` | Default text builder | Custom builder for options |
 | `valueBuilder` | `Widget Function(BuildContext, SelectOption<T, P>?, bool)?` | Default text builder | Custom builder for selected value |
+| `inputBuilder` | `SelectInputBuilder<T, P>?` | `null` | **(v0.5.0+)** Custom builder for entire input field. Receives `(context, selectedOption, isDisabled, onOpenSelectPopup)` |
+| `backdropBuilder` | `SelectBackdropBuilder?` | `null` | **(v0.5.0+)** Custom builder for backdrop. Receives `(context, onCloseSelectPopup)` |
 | `showOverlay` | `Future<void> Function(BuildContext, Widget)?` | `null` | **Deprecated in v0.3.0**. Custom overlay handler (no longer needed - overlay system is now built-in) |
 
 ### ToggleButtonGroup Widget
@@ -406,7 +463,7 @@ void _showSelectOverlay() {
 | `options` | `List<SelectOption<T, P>>` | **required** | List of selectable options |
 | `value` | `T?` | **required** | Currently selected value |
 | `onChange` | `Function(T?)` | **required** | Callback when value changes |
-| `buttonBuilder` | `Widget Function(BuildContext, SelectOption<T, P>, bool)?` | Default rounded button | Custom builder for each button. Receives context, option, and isActive |
+| `buttonBuilder` | `ToggleButtonBuilder<T, P>?` | Default rounded button | **(v0.5.0+)** Custom builder for each button. Receives `(context, option, isActive, onSelect)`. You must handle the tap via `onSelect` |
 | `spacing` | `double` | `8.0` | Horizontal spacing between buttons |
 | `runSpacing` | `double` | `8.0` | Vertical spacing when buttons wrap to new line (Wrap mode only) |
 | `wrapAlignment` | `WrapAlignment` | `WrapAlignment.start` | Alignment of buttons in Wrap mode (when scrollable is false) |

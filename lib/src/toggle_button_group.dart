@@ -1,24 +1,37 @@
 import 'package:flek_select/src/select_option.dart';
 import 'package:flutter/material.dart';
-import 'package:tappable/tappable.dart';
+
+/// Builder for each button in the toggle group.
+/// You are responsible for handling the tap via onSelect callback.
+typedef ToggleButtonBuilder<T, P> = Widget Function(
+  BuildContext context,
+  SelectOption<T, P> option,
+  bool isActive,
+  VoidCallback? onSelect,
+);
 
 Widget _defaultButtonBuilder<T, P>(
   BuildContext context,
   SelectOption<T, P> option,
   bool isActive,
+  VoidCallback? onSelect,
 ) {
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    decoration: BoxDecoration(
-      color: isActive ? Colors.blue : Colors.grey.shade200,
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Text(
-      option.text,
-      style: TextStyle(
-        color: isActive ? Colors.white : Colors.black87,
-        fontSize: 14,
-        fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+  return GestureDetector(
+    onTap: onSelect,
+    behavior: HitTestBehavior.opaque,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: isActive ? Colors.blue : Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        option.text,
+        style: TextStyle(
+          color: isActive ? Colors.white : Colors.black87,
+          fontSize: 14,
+          fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+        ),
       ),
     ),
   );
@@ -28,8 +41,10 @@ class ToggleButtonGroup<T, P> extends StatelessWidget {
   final List<SelectOption<T, P>> options;
   final T? value;
   final void Function(T? value) onChange;
-  final Widget Function(BuildContext context, SelectOption<T, P> option, bool isActive)?
-      buttonBuilder;
+
+  /// Builder for each button. If provided, you are responsible for handling
+  /// the tap via the onSelect callback parameter.
+  final ToggleButtonBuilder<T, P>? buttonBuilder;
   final double spacing;
   final double runSpacing;
   final WrapAlignment wrapAlignment;
@@ -69,17 +84,9 @@ class ToggleButtonGroup<T, P> extends StatelessWidget {
 
     final buttons = options.map((option) {
       final isActive = option.value == value;
+      final onSelect = isDisabled ? null : () => onChange(option.value);
 
-      return Tappable(
-        onTap: isDisabled
-            ? null
-            : () {
-                onChange(option.value);
-              },
-        borderRadius: BorderRadius.circular(8),
-        fillParent: false,
-        child: effectiveButtonBuilder(context, option, isActive),
-      );
+      return effectiveButtonBuilder(context, option, isActive, onSelect);
     }).toList();
 
     if (scrollable) {

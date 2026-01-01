@@ -1,0 +1,21 @@
+name: flek_select_example
+description: Example app demonstrating flek_select package usage
+
+publish_to: 'none'
+
+environment:
+  sdk: ^3.9.2
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flek_select:
+    path: ../
+  tappable: ^2.0.1
+
+dev_dependencies:
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true

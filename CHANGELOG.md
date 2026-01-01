@@ -1,5 +1,118 @@
 # 📋 Changelog
 
+## [0.5.0] - 2025-12-31
+
+### 🚀 Breaking Changes
+
+- **Removed `tappable` dependency**: The `tappable` package is no longer a dependency
+  - Default touch behavior now uses `GestureDetector` (no visual feedback)
+  - If you want touch feedback, use the new builder parameters with your preferred touch handler
+
+- **Modified `buttonBuilder` signature in ToggleButtonGroup**: Now includes `onSelect` callback
+  ```dart
+  // Before (v0.4.x)
+  buttonBuilder: (context, option, isActive) => MyButton(...)
+
+  // After (v0.5.0) - handle tap via onSelect
+  buttonBuilder: (context, option, isActive, onSelect) {
+    return GestureDetector(
+      onTap: onSelect,
+      child: MyButton(...),
+    );
+  }
+  ```
+
+### ✨ New Features
+
+- **`inputBuilder` parameter on Select**: Build the entire input field with full control
+  ```dart
+  Select(
+    inputBuilder: (context, selectedOption, isDisabled, onOpenSelectPopup) {
+      return Tappable(
+        onTap: isDisabled ? null : onOpenSelectPopup,
+        child: MyCustomInput(selectedOption),
+      );
+    },
+  )
+  ```
+
+- **`backdropBuilder` parameter on Select**: Customize the backdrop behind the popup
+  ```dart
+  Select(
+    backdropBuilder: (context, onCloseSelectPopup) {
+      return Tappable(
+        onTap: onCloseSelectPopup,
+        child: Container(color: Colors.black54),
+      );
+    },
+  )
+  ```
+
+- **Example app**: Added `example/` directory with tabbed demo app showing all use cases
+
+### 📝 Migration Guide
+
+**For users who want `Tappable` behavior:**
+
+1. Add `tappable: ^2.0.1` to your pubspec.yaml
+2. Use the new builder parameters:
+
+```dart
+// Select with Tappable
+Select(
+  inputBuilder: (context, selectedOption, isDisabled, onOpenSelectPopup) {
+    return Tappable(
+      onTap: isDisabled ? null : onOpenSelectPopup,
+      borderRadius: BorderRadius.circular(8),
+      child: MyInputWidget(selectedOption),
+    );
+  },
+  backdropBuilder: (context, onCloseSelectPopup) {
+    return Tappable(
+      onTap: onCloseSelectPopup,
+      child: Container(color: Colors.black87),
+    );
+  },
+)
+
+// ToggleButtonGroup with Tappable
+ToggleButtonGroup(
+  buttonBuilder: (context, option, isActive, onSelect) {
+    return Tappable(
+      onTap: onSelect,
+      borderRadius: BorderRadius.circular(8),
+      child: MyButtonWidget(option, isActive),
+    );
+  },
+)
+```
+
+**For existing `buttonBuilder` users:**
+
+Update your builder to accept the new `onSelect` parameter:
+```dart
+// Before
+buttonBuilder: (context, option, isActive) => Container(...)
+
+// After - wrap with GestureDetector or handle tap
+buttonBuilder: (context, option, isActive, onSelect) {
+  return GestureDetector(
+    onTap: onSelect,
+    child: Container(...),
+  );
+}
+```
+
+## [0.4.1] - 2025-11-19
+
+### 🐛 Bug Fixes
+
+- **Fixed crash when closing overlay during navigation**: Reordered operations in `_closeOverlay()` method to prevent crashes
+  - Now checks if overlay exists before attempting removal
+  - Updates widget state before removing overlay entry
+  - Ensures proper cleanup sequence during navigation transitions
+  - Fixes issue where rapid navigation could cause the Select widget to crash when its overlay was being dismissed
+
 ## [0.4.0] - 2025-11-11
 
 ### 🎯 Type Safety Enhancement

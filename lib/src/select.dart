@@ -1,9 +1,24 @@
 import 'package:flek_select/src/select_option.dart';
 import 'package:flutter/material.dart';
-import 'package:tappable/tappable.dart';
 
 const double _selectHeight = 48.0;
 const EdgeInsets _defaultInputPadding = EdgeInsets.only(left: 12, right: 12);
+
+/// Builder for the entire input field widget.
+/// If provided, you are responsible for handling the tap to open.
+typedef SelectInputBuilder<T, P> = Widget Function(
+  BuildContext context,
+  SelectOption<T, P>? selectedOption,
+  bool isDisabled,
+  VoidCallback onOpenSelectPopup,
+);
+
+/// Builder for the backdrop widget behind the popup.
+/// If provided, you are responsible for handling the tap to close.
+typedef SelectBackdropBuilder = Widget Function(
+  BuildContext context,
+  VoidCallback onCloseSelectPopup,
+);
 
 Widget _defaultOptionBuilder<T, P>(BuildContext context, SelectOption<T, P> option) {
   return Text(option.text);
@@ -56,6 +71,14 @@ class Select<T, P> extends StatefulWidget {
   final Future<void> Function(BuildContext context, Widget dialogContent)?
   showOverlay;
 
+  /// Builder for the entire input field widget.
+  /// If provided, you are responsible for handling the tap to open the popup.
+  final SelectInputBuilder<T, P>? inputBuilder;
+
+  /// Builder for the backdrop widget behind the popup.
+  /// If provided, you are responsible for handling the tap to close the popup.
+  final SelectBackdropBuilder? backdropBuilder;
+
   const Select({
     required this.options,
     this.isRequired,
@@ -74,6 +97,8 @@ class Select<T, P> extends StatefulWidget {
     this.inputDecoration,
     this.backgroundColor,
     this.showOverlay,
+    this.inputBuilder,
+    this.backdropBuilder,
     Widget Function(BuildContext context, SelectOption<T, P> option)? optionBuilder,
     Widget Function(
       BuildContext context,
@@ -146,10 +171,13 @@ class _SelectState<T, P> extends State<Select<T, P>> {
         children: [
           // Backdrop - tap to close
           Positioned.fill(
-            child: Tappable(
-              onTap: _closeOverlay,
-              child: Container(color: Colors.black87),
-            ),
+            child: widget.backdropBuilder != null
+                ? widget.backdropBuilder!(context, _closeOverlay)
+                : GestureDetector(
+                    onTap: _closeOverlay,
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(color: Colors.black87),
+                  ),
           ),
           // Centered options container
           Center(
@@ -251,47 +279,53 @@ class _SelectState<T, P> extends State<Select<T, P>> {
             ),
           ),
         ],
-        Container(
-          key: _selectKey, // Add key for positioning
-          height: widget.inputLabel != null ? _selectHeight : 32,
-          decoration: BoxDecoration(
-            borderRadius: borderRadius,
-            color: widget.backgroundColor ?? Colors.white10,
-          ).copyWith(color: widget.inputDecoration?.color),
-          child: Tappable(
-            borderRadius: borderRadius,
-            onTap: widget.isDisabled
-                ? null
-                : () {
-                    _showSelectOverlay(); // Use new overlay method
-                  },
-            child: Container(
-              padding: widget.inputPadding ?? _defaultInputPadding,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: widget.valueBuilder!(
-                      context,
-                      selectedOption,
-                      widget.isDisabled,
+        widget.inputBuilder != null
+            ? KeyedSubtree(
+                key: _selectKey,
+                child: widget.inputBuilder!(
+                  context,
+                  selectedOption,
+                  widget.isDisabled,
+                  _showSelectOverlay,
+                ),
+              )
+            : Container(
+                key: _selectKey, // Add key for positioning
+                height: widget.inputLabel != null ? _selectHeight : 32,
+                decoration: BoxDecoration(
+                  borderRadius: borderRadius,
+                  color: widget.backgroundColor ?? Colors.white10,
+                ).copyWith(color: widget.inputDecoration?.color),
+                child: GestureDetector(
+                  onTap: widget.isDisabled ? null : _showSelectOverlay,
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    padding: widget.inputPadding ?? _defaultInputPadding,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: widget.valueBuilder!(
+                            context,
+                            selectedOption,
+                            widget.isDisabled,
+                          ),
+                        ),
+                        Icon(
+                          widget.isDisabled
+                              ? Icons.lock
+                              : isDialogVisible
+                              ? Icons.arrow_drop_up
+                              : Icons.arrow_drop_down,
+                          size: 24,
+                          color: Colors.grey,
+                        ),
+                      ],
                     ),
                   ),
-                  Icon(
-                    widget.isDisabled
-                        ? Icons.lock
-                        : isDialogVisible
-                        ? Icons.arrow_drop_up
-                        : Icons.arrow_drop_down,
-                    size: 24,
-                    color: Colors.grey,
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-        ),
         if (widget.error != null || widget.hint != null)
           Padding(
             padding: const EdgeInsets.only(top: 4),
